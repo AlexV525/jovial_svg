@@ -56,6 +56,12 @@ class MyApp extends StatelessWidget {
   }
 }
 
+ScalableImageCache _svgCache = ScalableImageCache(size: 70);
+
+Widget _onLoading(BuildContext context) => Container(color: Colors.green);
+
+Widget _onError(BuildContext context) => Container(color: Colors.red);
+
 ///
 /// A stateful widget that displays a big list of SVG images.  It loads
 /// them lazily, and uses a cache to avoid excessive reloading.
@@ -70,7 +76,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  ScalableImageCache _svgCache = ScalableImageCache(size: 70);
   // A cache of the SVG images, to avoid excessive image reloading.
   // Depending on your application, it might make sense to
   // make a static cache instead.
@@ -96,21 +101,61 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Issues 6, 7'),
       ),
       body: GridView.builder(
-          itemCount: widget.svgs.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5),
-          itemBuilder: (context, index) {
-            return GridTile(
-              child: ScalableImageWidget.fromSISource(
+        itemCount: widget.svgs.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 5,
+        ),
+        itemBuilder: (context, index) {
+          final Uri uri = widget.svgs[index];
+          return GridTile(
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(builder: (_) => NextPage(uri: uri)),
+              ),
+              child: Hero(
+                tag: widget.svgs[index],
+                child: ScalableImageWidget.fromSISource(
                   cache: _svgCache,
                   si: ScalableImageSource.fromSvgHttpUrl(widget.svgs[index]),
                   onLoading: _onLoading,
-                  onError: _onError),
-            );
-          }),
+                  onError: _onError,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
+}
 
-  Widget _onLoading(BuildContext context) => Container(color: Colors.green);
-  Widget _onError(BuildContext context) => Container(color: Colors.red);
+class NextPage extends StatefulWidget {
+  const NextPage({Key? key, required this.uri}) : super(key: key);
+
+  final Uri uri;
+
+  @override
+  State<NextPage> createState() => _NextPageState();
+}
+
+class _NextPageState extends State<NextPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.uri.toString())),
+      body: SizedBox.expand(
+        child: Hero(
+          tag: widget.uri,
+          child: ScalableImageWidget.fromSISource(
+            cache: _svgCache,
+            si: ScalableImageSource.fromSvgHttpUrl(widget.uri),
+            onLoading: _onLoading,
+            onError: _onError,
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
 }
